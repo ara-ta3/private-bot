@@ -8,7 +8,7 @@ const client = new Discord.Client();
 var gameCount = 0;
 const isDebug = false; //true: ツイートOFF，1分間隔で更新，同じ試合でもカウント
 const isTweeting = false;
-const isDiscording = true;
+const isDiscording = false;
 var isChecking = false;
 
 var T = new Twit({
@@ -174,7 +174,11 @@ function Players(){
         tweet = tweet+ary[i].name+"("+ary[i].point+")\n";
       }
       return tweet
+    },
+    clearData:()=>{
+      this.player = {};
     }
+
   }
 }
 
@@ -277,6 +281,7 @@ client.on('message', msg => {
   }
   if (msg.content === '<@349624831001624576> stop' && isChecking == true) {
     isChecking = false;
+    players.clearData();
     postDiscord("終わり〜\nみんなおつかれさま");
   }
 });
