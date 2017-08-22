@@ -168,15 +168,17 @@ function Players(){
       }
       //console.log(tmpAry);
       var ary = _ObjArraySort(tmpAry,"point","desc");
-      console.log("ButtleResult:(",gameCount,"試合目)");
-      console.log(ary);
+      //console.log("ButtleResult:(",gameCount,"試合目)");
       for(var i = 0; i < ary.length;i++){
         tweet = tweet+ary[i].name+"("+ary[i].point+")\n";
       }
       return tweet
     },
     clearData:()=>{
-      this.player = {};
+      this.players = {};
+    },
+    showData:()=>{
+      console.log(this.players);
     }
 
   }
@@ -236,6 +238,7 @@ async function main(){
     //TODO: addGachiPowを個別にする（今後のため）
     var winPowAvg = players.getGachiPow(battleResult.winPlayer);
     var losePowAvg = players.getGachiPow(battleResult.losePlayer);
+    players.showData();
     var diffPowAvg = winPowAvg-losePowAvg;
     console.log("diffPowAvg ",diffPowAvg);
     if(diffPowAvg < gachiPowConst*-1){
@@ -253,7 +256,7 @@ async function main(){
     }
 
     var tweet = players.makeTweet();
-    console.log(tweet);
+    //console.log(tweet);
 
     if(!isDebug&&isTweeting){
       T.post('statuses/update', { status: tweet }, function(err, data, response) {
@@ -264,32 +267,40 @@ async function main(){
       });
     }
     if(isDiscording){
-      postDiscord(gameCount+"試合目\n"+tweet);
+      postDiscord("【"+gameCount+"試合目】\n"+tweet);
     }
   }
 
 }
 
-var today = new Date(); 
 client.login(config.discord_token);
 
 client.on('message', msg => {
-  console.log(msg.content);
   if (msg.content === '<@349624831001624576> start' && isChecking == false) {
     isChecking = true;
+    var today = new Date(); 
     postDiscord("監視開始\n"+today);
     main();
-  }
-  if (msg.content === '<@349624831001624576> stop' && isChecking == true) {
+  }else if (msg.content === '<@349624831001624576> stop' && isChecking == true) {
     isChecking = false;
     players.clearData();
+    latestGameId = 0;
+    gameCount=0;
     postDiscord("終わり〜\nみんなおつかれさま");
+  }else if(msg.content === '<@349624831001624576> status'){
+    var statMes = "";
+    if(isChecking){
+      statMes = "起動中";
+    }else{
+      statMes = "停止中";
+    }
+    postDiscord("今は"+statMes+"だよ！");
   }
 });
 
 
 if(!isDebug){
-  new CronJob('00 */2 * * * *', function() {
+  new CronJob('*/30 * * * * *', function() {
     if(isChecking){
       main();
     }
@@ -300,6 +311,11 @@ if(!isDebug){
 if(isDebug){
   new CronJob('00 */1 * * * *', function() {
     console.log('tick');
-    main();
+    players.clearData();
+
+    if(isChecking){
+      main();
+
+    }
   }, null, true, 'Asia/Tokyo');
 }
