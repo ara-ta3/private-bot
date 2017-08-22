@@ -8,7 +8,7 @@ const client = new Discord.Client();
 var gameCount = 0;
 const isDebug = false; //true: ツイートOFF，1分間隔で更新，同じ試合でもカウント
 const isTweeting = false;
-const isDiscording = false;
+const isDiscording = true;
 var isChecking = false;
 
 var T = new Twit({
@@ -278,6 +278,7 @@ client.on('message', msg => {
   if (msg.content === '<@349624831001624576> start' && isChecking == false) {
     isChecking = true;
     postDiscord("監視開始\n"+today);
+    main();
   }
   if (msg.content === '<@349624831001624576> stop' && isChecking == true) {
     isChecking = false;
