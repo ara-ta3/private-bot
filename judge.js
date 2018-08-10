@@ -1,23 +1,18 @@
 const config  = require('./config.json');
 const request = require('request');
 var CronJob = require('cron').CronJob;
-const Twit = require('twit');
 const Discord = require("discord.js");
 const client = new Discord.Client();
 
+const USER_LANG = "ja-jp";
+
 var gameCount = 0;
-const isDebug = false; //true: ツイートOFF，1分間隔で更新，同じ試合でもカウント
+const isDebug = true; //true: ツイートOFF，1分間隔で更新，同じ試合でもカウント
 const isTweeting = false;
 const isDiscording = true;
 var isChecking = false;
 
-var T = new Twit({
-  consumer_key:config.consumer_key,
-  consumer_secret:config.consumer_secret,
-  access_token:config.access_token,
-  access_token_secret:config.access_token_secret,
-  timeout_ms:60*1000,  // optional HTTP request timeout to apply to all requests.
-})
+var postToChannel = null;
 
 const gachiPowConst = 50;
 
@@ -39,73 +34,83 @@ function httpRequest(options) {
   });
 }
 
-function postDiscord(mes){
-  httpRequest({
-    url: config.discord_webhook,
-    method: 'POST',
-    headers: {"Accept": "application/json"},
-    json:{"content":mes}
+function jsonRequest(options) {
+  return new Promise(function (resolve, reject) {
+    request(options, function (error, res, body) {
+      if (!error && (res.statusCode == 200)) {
+        resolve(body);
+      } else if(res.statusCode == 204){
+        resolve();
+      } else {
+        console.log('not 200 code : ',res.statusCode);
+        reject(error);
+      }
+    });
   });
 }
 
+function postDiscord(mes){
+  postToChannel.send(mes);
+}
+
 async function getIksmSession(){
-  var client_id = config.client_id;
-  var resource_id = config.resource_id;
-  var init_session_token = config.init_session_token;
+  // var client_id = config.client_id;
+  // var resource_id = config.resource_id;
+  // var init_session_token = config.init_session_token;
 
-  var apiTokenRes = await httpRequest({
-    url: 'https://accounts.nintendo.com/connect/1.0.0/api/token',
-    method: 'POST',
-    headers: {'Accept': 'application/json'},
-    json:{
-      'client_id': client_id,
-      'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer-session-token',
-      'session_token': init_session_token
-    }
-  });
-  var apiToken = apiTokenRes['body'];
+  // var apiTokenRes = await httpRequest({
+  //   url: 'https://accounts.nintendo.com/connect/1.0.0/api/token',
+  //   method: 'POST',
+  //   headers: {'Accept': 'application/json'},
+  //   json:{
+  //     'client_id': client_id,
+  //     'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer-session-token',
+  //     'session_token': init_session_token
+  //   }
+  // });
+  // var apiToken = apiTokenRes['body'];
 
-  var someTokensRes = await httpRequest({
-    url: 'https://api-lp1.znc.srv.nintendo.net/v1/Account/GetToken',
-    method: 'POST',
-    headers: {'Accept': 'application/json',
-      'Authorization': 'Bearer ' + apiToken['access_token']},
-    json:{"parameter": {
-      "language": "null",
-      "naBirthday": "null",
-      "naCountry": "null",
-      "naIdToken": apiToken["id_token"]}
-    }
-  });
-  var tokens = someTokensRes['body']['result'];
+  // var someTokensRes = await httpRequest({
+  //   url: 'https://api-lp1.znc.srv.nintendo.net/v1/Account/GetToken',
+  //   method: 'POST',
+  //   headers: {'Accept': 'application/json',
+  //     'Authorization': 'Bearer ' + apiToken['access_token']},
+  //   json:{"parameter": {
+  //     "language": "null",
+  //     "naBirthday": "null",
+  //     "naCountry": "null",
+  //     "naIdToken": apiToken["id_token"]}
+  //   }
+  // });
+  // var tokens = someTokensRes['body']['result'];
 
-  var authRes = await httpRequest({
-    url: "https://api-lp1.znc.srv.nintendo.net/v1/Game/GetWebServiceToken",
-    method: 'POST',
-    headers: {"Accept": "application/json",
-      "Authorization": "Bearer "+tokens["webApiServerCredential"]["accessToken"]},
-    json:{"parameter": {"id": resource_id}}
-  });
+  // var authRes = await httpRequest({
+  //   url: "https://api-lp1.znc.srv.nintendo.net/v1/Game/GetWebServiceToken",
+  //   method: 'POST',
+  //   headers: {"Accept": "application/json",
+  //     "Authorization": "Bearer "+tokens["webApiServerCredential"]["accessToken"]},
+  //   json:{"parameter": {"id": resource_id}}
+  // });
 
-  if(authRes['body'].status != 0){
-    return new Promise(function (resolve, reject) {
-      reject('Nintendo Account Auth Error!!');
-    });
-  }
+  // if(authRes['body'].status != 0){
+  //   return new Promise(function (resolve, reject) {
+  //     reject('Nintendo Account Auth Error!!');
+  //   });
+  // }
 
-  var accessToken = authRes['body']["result"]["accessToken"]
+  // var accessToken = authRes['body']["result"]["accessToken"]
 
-  var session = await httpRequest({
-    url: "https://app.splatoon2.nintendo.net/?lang=ja-JP",
-    method: 'GET',
-    headers: {"Accept": "application/json",
-      "X-gamewebtoken": accessToken}
-  });
+  // var session = await httpRequest({
+  //   url: "https://app.splatoon2.nintendo.net/?lang=ja-JP",
+  //   method: 'GET',
+  //   headers: {"Accept": "application/json",
+  //     "X-gamewebtoken": accessToken}
+  // });
 
-  var session_id = session.caseless.dict['set-cookie'][0].split(';')[0];
-  
+  // var session_id = session.caseless.dict['set-cookie'][0].split(';')[0];
+
   return new Promise(function (resolve, reject) {
-    resolve(session_id);
+    resolve(config.iksm_session);
   });
 }
 
@@ -114,7 +119,7 @@ function Players(){
   this.players = {};
   function _ObjArraySort(ary, key, order) {
     var reverse = 1;
-    if(order && order.toLowerCase() == "desc") 
+    if(order && order.toLowerCase() == "desc")
         reverse = -1;
     ary.sort(function(a, b) {
       if(a[key] < b[key])
@@ -142,7 +147,7 @@ function Players(){
         }else{
           sumPow += 2000;
         }
-        
+
       }
       return sumPow
     },
@@ -187,14 +192,26 @@ function Players(){
 async function getPlayersResult(gameId){
   if(!iksmSession)
     return 0;
-  var res = await httpRequest({
+
+  var resData = await jsonRequest({
     url: "https://app.splatoon2.nintendo.net/api/results/"+gameId,
     method: 'GET',
-    headers: {"Accept": "application/json",
-      "Cookie": iksmSession,
-      "referer": "https://app.splatoon2.nintendo.net/results/"+gameId}
+    gzip: true,
+    json: true,
+    headers: {
+      'Host': 'app.splatoon2.nintendo.net',
+      'x-unique-id': '6463509894502868281',
+      'x-requested-with': 'XMLHttpRequest',
+      'x-timezone-offset': '0',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 7.1.2; Pixel Build/NJH47D; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/59.0.3071.125 Mobile Safari/537.36',
+      "Accept": "application/json",
+      "referer": "https://app.splatoon2.nintendo.net/results/"+gameId,
+      'Accept-Encoding': 'gzip, deflate',
+      'Accept-Language': USER_LANG,
+      'Cookie': 'iksm_session='+config.iksm_session,
+    },
   });
-  var resData = JSON.parse(res.body);
+
   //console.log(resData);
   if(resData.my_team_result.name == 'WIN!'){
     var winner = resData.my_team_members;
@@ -222,16 +239,28 @@ async function main(){
   if(!iksmSession)
     iksmSession = await getIksmSession();
 
-  var res = await httpRequest({
+  var resData = await jsonRequest({
     url: "https://app.splatoon2.nintendo.net/api/results",
     method: 'GET',
-    headers: {"Accept": "*/*",
-      "Cookie": iksmSession}
+    gzip: true,
+    json: true,
+    headers: {
+      'Host': 'app.splatoon2.nintendo.net',
+      'x-unique-id': '6463509894502868281',
+      'x-requested-with': 'XMLHttpRequest',
+      'x-timezone-offset': '0',
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 7.1.2; Pixel Build/NJH47D; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/59.0.3071.125 Mobile Safari/537.36',
+      'Accept': '*/*',
+      'Referer': 'https://app.splatoon2.nintendo.net/results',
+      'Accept-Encoding': 'gzip, deflate',
+      'Accept-Language': USER_LANG,
+      'Cookie': 'iksm_session='+config.iksm_session,
+    },
   });
 
-  if(latestGameId != JSON.parse(res.body).results[0].battle_number || isDebug){
+  if(latestGameId != resData.results[0].battle_number || isDebug){
     gameCount++;
-    latestGameId = JSON.parse(res.body).results[0].battle_number;
+    latestGameId = resData.results[0].battle_number;
     var battleResult = await getPlayersResult(latestGameId);
 
     //ウデマエアルゴリズム
@@ -258,14 +287,14 @@ async function main(){
     var tweet = players.makeTweet();
     //console.log(tweet);
 
-    if(!isDebug&&isTweeting){
-      T.post('statuses/update', { status: tweet }, function(err, data, response) {
-        console.log("tweeted");
-        if(err){
-          console.log(err);
-        }
-      });
-    }
+    // if(!isDebug&&isTweeting){
+    //   T.post('statuses/update', { status: tweet }, function(err, data, response) {
+    //     console.log("tweeted");
+    //     if(err){
+    //       console.log(err);
+    //     }
+    //   });
+    // }
     if(isDiscording){
       postDiscord("【"+gameCount+"試合目】\n"+tweet);
     }
@@ -275,26 +304,33 @@ async function main(){
 
 client.login(config.discord_token);
 
-client.on('message', msg => {
-  if (msg.content === '<@349624831001624576> start' && isChecking == false) {
+client.on('message', message => {
+  var botTrigger = function(msg, keyword) {
+    return msg.mentions.users.has(config.discord_bot_id)
+            && new RegExp(keyword).test(msg.content);
+  };
+
+  if (botTrigger(message, "start") && isChecking == false) {
     isChecking = true;
-    var today = new Date(); 
-    postDiscord("監視開始\n"+today);
+    var today = new Date();
+    postToChannel = message.channel;
+    message.channel.send("監視開始\n"+today);
+    message.channel.send("<#"+postToChannel.id+"> に試合結果を投稿します。\n"+today);
     main();
-  }else if (msg.content === '<@349624831001624576> stop' && isChecking == true) {
+  }else if (botTrigger(message, "end") && isChecking == true) {
     isChecking = false;
     players.clearData();
     latestGameId = 0;
-    gameCount=0;
-    postDiscord("終わり〜\nみんなおつかれさま");
-  }else if(msg.content === '<@349624831001624576> status'){
+    gameCount = 0;
+    message.channel.send("終わり〜\nみんなおつかれさま");
+  }else if(botTrigger(message, "status")){
     var statMes = "";
     if(isChecking){
       statMes = "起動中";
     }else{
       statMes = "停止中";
     }
-    postDiscord("今は"+statMes+"だよ！");
+    message.channel.send("今は"+statMes+"だよ！");
   }
 });
 
