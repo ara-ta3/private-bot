@@ -89,8 +89,9 @@ async function getPlayersResult(gameId){
       loser.push(resData.player_result);
   }
   //console.log(winner);
-  var winPlayer = [winner[0].player,winner[1].player,winner[2].player,winner[3].player];
-  var losePlayer = [loser[0].player,loser[1].player,loser[2].player,loser[3].player];
+  var winPlayer = winner.map(x => x.player);
+  var losePlayer = loser.map(x => x.player);
+
   return new Promise(function (resolve, reject) {
     resolve({winPlayer:winPlayer,losePlayer:losePlayer});
   });
