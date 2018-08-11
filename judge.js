@@ -43,21 +43,21 @@ function jsonRequest(options) {
         resolve();
       } else {
         console.log('not 200 code : ',res.statusCode);
-        reject(error);
+        reject(res);
       }
     });
   });
 }
 
 function postDiscord(mes){
-  postToChannel.send(mes);
+  return postToChannel.send(mes);
 }
 
-async function getPlayersResult(gameId){
+function getPlayersResult(gameId){
   if(!iksmSession)
     return 0;
 
-  var resData = await jsonRequest({
+  return jsonRequest({
     url: "https://app.splatoon2.nintendo.net/api/results/"+gameId,
     method: 'GET',
     gzip: true,
@@ -74,43 +74,40 @@ async function getPlayersResult(gameId){
       'Accept-Language': USER_LANG,
       'Cookie': 'iksm_session='+iksmSession,
     },
-  });
+  }).then(function(resData){
+    // ルールとステージを取り出す
+    let rule = resData.rule.name;
+    let stage = resData.stage.name;
 
-  // ルールとステージを取り出す
-  let rule = resData.rule.name;
-  let stage = resData.stage.name;
-
-  //console.log(resData);
-  if(resData.my_team_result.name == 'WIN!'){
-    var winner = resData.my_team_members;
-    if(resData.player_result)
-      winner.push(resData.player_result);
-    var loser = resData.other_team_members;
-  }else{
-    var winner = resData.other_team_members;
-    var loser = resData.my_team_members;
-    if(resData.player_result)
-      loser.push(resData.player_result);
-  }
-  //console.log(winner);
-  var winPlayer = winner.map(x => x.player);
-  var losePlayer = loser.map(x => x.player);
-
-  return new Promise(function (resolve, reject) {
-    resolve({
+    //console.log(resData);
+    if(resData.my_team_result.name == 'WIN!'){
+      var winner = resData.my_team_members;
+      if(resData.player_result)
+        winner.push(resData.player_result);
+      var loser = resData.other_team_members;
+    }else{
+      var winner = resData.other_team_members;
+      var loser = resData.my_team_members;
+      if(resData.player_result)
+        loser.push(resData.player_result);
+    }
+    //console.log(winner);
+    var winPlayer = winner.map(x => x.player);
+    var losePlayer = loser.map(x => x.player);
+    return {
       rule: rule,
       stage: stage,
       winPlayer:winPlayer,
       losePlayer:losePlayer
-    });
+    };
   });
 }
 
-async function main(){
+function main(){
   if(!iksmSession)
     return 0;
 
-  var resData = await jsonRequest({
+  jsonRequest({
     url: "https://app.splatoon2.nintendo.net/api/results",
     method: 'GET',
     gzip: true,
@@ -127,26 +124,31 @@ async function main(){
       'Accept-Language': USER_LANG,
       'Cookie': 'iksm_session='+iksmSession,
     },
-  });
+  }).then(function (resData){
+    if(latestGameId != resData.results[0].battle_number || isDebug){
+      latestGameId = resData.results[0].battle_number;
+      getPlayersResult(latestGameId)
+        .then(function(battleResult){
+          //ウデマエアルゴリズム
+          environment.updatePower(battleResult.winPlayer, battleResult.losePlayer);
 
-  if(latestGameId != resData.results[0].battle_number || isDebug){
-    latestGameId = resData.results[0].battle_number;
-    var battleResult = await getPlayersResult(latestGameId);
+          let tweet_body = environment.makeTweet();
+          let tweet_pre = "**【"+environment.gameCount+"試合目】**\n"
+                          + battleResult.rule + " " + battleResult.stage
+                          + "\n\n";
+          let tweet = tweet_pre + tweet_body;
 
-    //ウデマエアルゴリズム
-    environment.updatePower(battleResult.winPlayer, battleResult.losePlayer);
-
-    let tweet_body = environment.makeTweet();
-    let tweet_pre = "**【"+environment.gameCount+"試合目】**\n"
-                    + battleResult.rule + " " + battleResult.stage
-                    + "\n\n";
-    let tweet = tweet_pre + tweet_body;
-
-    if(isDiscording){
-      postDiscord(tweet);
+          if(isDiscording){
+            postDiscord(tweet);
+          }
+        });
     }
-  }
-
+  }).catch(function (e){
+    console.log("データの取得に失敗しました。")
+    console.log(e.statusCode + e.statusMessage);
+    postDiscord("データの取得に失敗したので、botを終了します。")
+      .then(() => process.exit(1));
+  });
 }
 
 client.login(config.discord_token);
