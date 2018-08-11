@@ -76,6 +76,10 @@ async function getPlayersResult(gameId){
     },
   });
 
+  // ルールとステージを取り出す
+  let rule = resData.rule.name;
+  let stage = resData.stage.name;
+
   //console.log(resData);
   if(resData.my_team_result.name == 'WIN!'){
     var winner = resData.my_team_members;
@@ -93,7 +97,12 @@ async function getPlayersResult(gameId){
   var losePlayer = loser.map(x => x.player);
 
   return new Promise(function (resolve, reject) {
-    resolve({winPlayer:winPlayer,losePlayer:losePlayer});
+    resolve({
+      rule: rule,
+      stage: stage,
+      winPlayer:winPlayer,
+      losePlayer:losePlayer
+    });
   });
 }
 
@@ -127,10 +136,14 @@ async function main(){
     //ウデマエアルゴリズム
     environment.updatePower(battleResult.winPlayer, battleResult.losePlayer);
 
-    var tweet = environment.makeTweet();
+    let tweet_body = environment.makeTweet();
+    let tweet_pre = "**【"+environment.gameCount+"試合目】**\n"
+                    + battleResult.rule + " " + battleResult.stage
+                    + "\n\n";
+    let tweet = tweet_pre + tweet_body;
 
     if(isDiscording){
-      postDiscord("**【"+environment.gameCount+"試合目】**\n"+tweet);
+      postDiscord(tweet);
     }
   }
 
