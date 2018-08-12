@@ -27,7 +27,7 @@ function httpRequest(options) {
       } else if(res.statusCode == 204){
         resolve();
       } else {
-        console.log('not 200 code : ',res.statusCode);
+        console.error('not 200 code : ',res.statusCode);
         reject(error);
       }
     });
@@ -142,14 +142,12 @@ function main(){
         });
     }
   }).catch(function (e){
-    console.log("データの取得に失敗しました。")
-    console.log(e.statusCode + e.statusMessage);
+    console.error("データの取得に失敗しました。")
+    console.error(e.statusCode + e.statusMessage);
     postDiscord("データの取得に失敗したので、botを終了します。")
       .then(() => process.exit(1));
   });
 }
-
-client.login(config.discord_token);
 
 client.on('message', message => {
   var botTrigger = function(msg, keyword) {
@@ -172,15 +170,14 @@ client.on('message', message => {
     latestGameId = 0;
     message.channel.send("終わり〜\nみんなおつかれさま");
   }else if(botTrigger(message, "status")){
-    var statMes = "";
-    if(isChecking){
-      statMes = "起動中";
-    }else{
-      statMes = "停止中";
-    }
+    let statMes = isChecking ? "起動中" : "停止中";
     message.channel.send("今は"+statMes+"だよ！");
   }
 });
+
+client.login(config.discord_token)
+  .then(() => console.log("Discordへ接続しました。"))
+  .catch(console.error);
 
 
 if(!isDebug){
