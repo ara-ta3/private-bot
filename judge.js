@@ -54,6 +54,18 @@ function postDiscord(mes){
     });
 }
 
+function ruler(){
+  let r = Math.random();
+  const rep = 6;
+  if(r < 1/6){
+    return ":squid: ".repeat(rep*2);
+  }else if (r < 2/6){
+    return ":octopus: ".repeat(rep*2);
+  }else{
+    return ":squid: :octopus: ".repeat(rep);
+  }
+}
+
 function getPlayersResult(gameId){
   if(!iksmSession)
     return 0;
@@ -132,6 +144,18 @@ function main(){
     } else {
       return Promise.reject("Already Exists");
     }
+  }).then(function(battleResult){
+    //ウデマエアルゴリズム
+    environment.updatePower(battleResult.winPlayer, battleResult.losePlayer);
+
+    let tweet_body = environment.makeTweet();
+    let tweet_pre = ruler() + "\n\n"
+                    + "**【"+environment.gameCount+"試合目】**\n"
+                    + battleResult.rule + " " + battleResult.stage
+                    + "\n\n";
+    let tweet = tweet_pre + tweet_body;
+
+    return postDiscord(tweet);
   }).catch(function (e){
     if (e === "Already Exists"){
       // do nothing
@@ -140,18 +164,6 @@ function main(){
       console.error(e.statusCode + e.statusMessage);
       postDiscord("データを持ってくるのに失敗してるみたい...")
     }
-  }).then(function(battleResult){
-    //ウデマエアルゴリズム
-    environment.updatePower(battleResult.winPlayer, battleResult.losePlayer);
-
-    let tweet_body = environment.makeTweet();
-    let tweet_pre = ":squid: :octopus: ".repeat(6) + "\n\n"
-                    + "**【"+environment.gameCount+"試合目】**\n"
-                    + battleResult.rule + " " + battleResult.stage
-                    + "\n\n";
-    let tweet = tweet_pre + tweet_body;
-
-    return postDiscord(tweet);
   });
 }
 
