@@ -50,8 +50,8 @@ Player.prototype.str = function() {
   var powerstr = () => {
     var s = this.getPower().toFixed(1);
     let i = this.getDiffPower();
-    if(i !== null){
-      let diffstr = i > 0 ? "+"+i.toFixed(1) : i.toFixed(1);
+    if(i !== null || i === 0){
+      let diffstr = i > 0 ? "+"+i.toFixed(1)+" :arrow_upper_right: " : i.toFixed(1)+" :arrow_lower_right: ";
       s += " (" + diffstr + ")";
     }
     return s;
@@ -66,10 +66,6 @@ Player.prototype.str = function() {
     }
   } else {
     s += powerstr();
-  }
-
-  if (this.prevWon) {
-    s += " :crown: ";
   }
 
   return s;

@@ -129,23 +129,29 @@ function main(){
     if(latestGameId != resData.results[0].battle_number || isDebug){
       latestGameId = resData.results[0].battle_number;
       return getPlayersResult(latestGameId);
+    } else {
+      return Promise.reject("Already Exists");
+    }
+  }).catch(function (e){
+    if (e === "Already Exists"){
+      // do nothing
+    } else {
+      console.error("データの取得に失敗しました。")
+      console.error(e.statusCode + e.statusMessage);
+      postDiscord("データを持ってくるのに失敗してるみたい...")
     }
   }).then(function(battleResult){
     //ウデマエアルゴリズム
     environment.updatePower(battleResult.winPlayer, battleResult.losePlayer);
 
     let tweet_body = environment.makeTweet();
-    let tweet_pre = "**【"+environment.gameCount+"試合目】**\n"
+    let tweet_pre = ":squid: :octopus: ".repeat(6) + "\n\n"
+                    + "**【"+environment.gameCount+"試合目】**\n"
                     + battleResult.rule + " " + battleResult.stage
                     + "\n\n";
     let tweet = tweet_pre + tweet_body;
 
-    postDiscord(tweet);
-  }).catch(function (e){
-    console.error("データの取得に失敗しました。")
-    console.error(e.statusCode + e.statusMessage);
-    postDiscord("データの取得に失敗したので、botを終了します。")
-      .then(() => process.exit(1));
+    return postDiscord(tweet);
   });
 }
 

@@ -17,6 +17,7 @@ Environment.prototype.reset = function() {
   this.gameCount = 0;
   this.ranking = new glicko2.Glicko2(settings);
   this.players = {};
+  this.topPlayers = new Set();
 }
 
 Environment.prototype.createPlayer = function(player) {
@@ -53,6 +54,14 @@ Environment.prototype.updatePower = function(winner, loser) {
       this.players[k].updatePower();
     }
   }
+
+  // ガチパワーがトップのプレイヤーを探す
+  this.topPlayers = this.getTopPlayers();
+}
+
+Environment.prototype.getTopPlayers = function() {
+  let max_power = Math.max(...Object.values(this.players).map(p => p.getPower()));
+  return new Set(Object.values(this.players).filter(p => p.getPower() >= max_power));
 }
 
 Environment.prototype.makeTweet = function() {
@@ -66,8 +75,12 @@ Environment.prototype.makeTweet = function() {
   // var ary = _ObjArraySort(tmpAry,"point","desc");
   var ary = tmpAry;
 
-  return ary.map(function(e){
-    return e.str();
+  return ary.map(e => {
+    var s = e.str();
+    if(this.topPlayers.has(e)){
+      s += " :first_place: ";
+    }
+    return s;
   }).join('\n') + '\n';
 }
 
