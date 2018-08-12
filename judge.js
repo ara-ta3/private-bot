@@ -9,7 +9,6 @@ const client = new Discord.Client();
 const USER_LANG = "ja-jp";
 
 const isDebug = false; //true: ツイートOFF，1分間隔で更新，同じ試合でもカウント
-const isDiscording = true;
 var isChecking = false;
 
 var environment;
@@ -48,7 +47,11 @@ function jsonRequest(options) {
 }
 
 function postDiscord(mes){
-  return postToChannel.send(mes);
+  return postToChannel.send(mes)
+    .catch(e => {
+      console.error("Discordへの投稿に失敗しました。")
+      console.error(e);
+    });
 }
 
 function getPlayersResult(gameId){
@@ -125,22 +128,19 @@ function main(){
   }).then(function (resData){
     if(latestGameId != resData.results[0].battle_number || isDebug){
       latestGameId = resData.results[0].battle_number;
-      getPlayersResult(latestGameId)
-        .then(function(battleResult){
-          //ウデマエアルゴリズム
-          environment.updatePower(battleResult.winPlayer, battleResult.losePlayer);
-
-          let tweet_body = environment.makeTweet();
-          let tweet_pre = "**【"+environment.gameCount+"試合目】**\n"
-                          + battleResult.rule + " " + battleResult.stage
-                          + "\n\n";
-          let tweet = tweet_pre + tweet_body;
-
-          if(isDiscording){
-            postDiscord(tweet);
-          }
-        });
+      return getPlayersResult(latestGameId);
     }
+  }).then(function(battleResult){
+    //ウデマエアルゴリズム
+    environment.updatePower(battleResult.winPlayer, battleResult.losePlayer);
+
+    let tweet_body = environment.makeTweet();
+    let tweet_pre = "**【"+environment.gameCount+"試合目】**\n"
+                    + battleResult.rule + " " + battleResult.stage
+                    + "\n\n";
+    let tweet = tweet_pre + tweet_body;
+
+    postDiscord(tweet);
   }).catch(function (e){
     console.error("データの取得に失敗しました。")
     console.error(e.statusCode + e.statusMessage);
@@ -159,8 +159,8 @@ client.on('message', message => {
     isChecking = true;
     var today = new Date();
     postToChannel = message.channel;
-    message.channel.send("監視開始\n"+today);
-    message.channel.send("<#"+postToChannel.id+"> に試合結果を投稿します。");
+    postDiscord("監視開始\n"+today);
+    postDiscord("<#"+postToChannel.id+"> に試合結果を投稿します。");
 
     // 環境の初期化
     environment = new Env();
@@ -168,10 +168,10 @@ client.on('message', message => {
   }else if (botTrigger(message, "end") && isChecking == true) {
     isChecking = false;
     latestGameId = 0;
-    message.channel.send("終わり〜\nみんなおつかれさま");
+    postDiscord("終わり〜\nみんなおつかれさま");
   }else if(botTrigger(message, "status")){
     let statMes = isChecking ? "起動中" : "停止中";
-    message.channel.send("今は"+statMes+"だよ！");
+    postDiscord("今は"+statMes+"だよ！");
   }
 });
 
