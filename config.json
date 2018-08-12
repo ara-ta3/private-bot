@@ -3,5 +3,11 @@
     "discord_bot_id": "",
     "iksm_session": "",
     "calculating_count": 7,
-    "calculating_visible": false
+    "calculating_visible": false,
+    "glicko_setting": {
+        "tau" : 0.5,
+        "rating" : 2100,
+        "rd" : 200,
+        "vol" : 0.06
+    }
 }
