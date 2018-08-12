@@ -39,8 +39,6 @@ function jsonRequest(options) {
     request(options, function (error, res, body) {
       if (!error && (res.statusCode == 200)) {
         resolve(body);
-      } else if(res.statusCode == 204){
-        resolve();
       } else {
         console.log('not 200 code : ',res.statusCode);
         reject(res);
