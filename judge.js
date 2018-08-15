@@ -1,5 +1,7 @@
 const config  = require('./config.json');
 const Env = require('./environment');
+const Player = require('./player');
+Player.setConfig(config);
 
 const request = require('request');
 var CronJob = require('cron').CronJob;
@@ -11,11 +13,23 @@ const USER_LANG = "ja-jp";
 const isDebug = false; //true: ツイートOFF，1分間隔で更新，同じ試合でもカウント
 var isChecking = false;
 
-var environment;
 var postToChannel = null;
 
 const iksmSession = config.iksm_session;
 var latestGameId = 0;
+
+var environment = function initEnvironment(reset){
+  if (process.argv.length <= 2 || reset) {
+    return new Env(config.glicko_setting);
+  } else {
+    var fileName = process.argv[2];
+    console.log(fileName+"から復元します。")
+    var env = new Env(config.glicko_setting);
+    env.loadJSON(fileName).then(() => console.log("復元しました。"));
+    return env;
+  }
+}();
+
 
 function httpRequest(options) {
   return new Promise(function (resolve, reject) {
@@ -64,6 +78,22 @@ function ruler(){
   }else{
     return ":squid: :octopus: ".repeat(rep);
   }
+}
+
+function dateFormat (date, format) {
+  if (!format) format = 'YYYY-MM-DD hh:mm:ss.SSS';
+  format = format.replace(/YYYY/g, date.getFullYear());
+  format = format.replace(/MM/g, ('0' + (date.getMonth() + 1)).slice(-2));
+  format = format.replace(/DD/g, ('0' + date.getDate()).slice(-2));
+  format = format.replace(/hh/g, ('0' + date.getHours()).slice(-2));
+  format = format.replace(/mm/g, ('0' + date.getMinutes()).slice(-2));
+  format = format.replace(/ss/g, ('0' + date.getSeconds()).slice(-2));
+  if (format.match(/S/g)) {
+    var milliSeconds = ('00' + date.getMilliseconds()).slice(-3);
+    var length = format.match(/S/g).length;
+    for (var i = 0; i < length; i++) format = format.replace(/S/, milliSeconds.substring(i, i + 1));
+  }
+  return format;
 }
 
 function getPlayersResult(gameId){
@@ -144,6 +174,15 @@ function main(){
     } else {
       return Promise.reject("Already Exists");
     }
+  }).catch(function (e){
+    if (e === "Already Exists"){
+      // do nothing
+    } else {
+      console.error("データの取得に失敗しました。")
+      console.error(e.statusCode + e.statusMessage);
+      postDiscord("データを持ってくるのに失敗してるみたい...")
+    }
+    return Promise.reject(e);
   }).then(function(battleResult){
     //ウデマエアルゴリズム
     environment.updatePower(battleResult.winPlayer, battleResult.losePlayer);
@@ -156,14 +195,12 @@ function main(){
     let tweet = tweet_pre + tweet_body;
 
     return postDiscord(tweet);
+  }).then(function() {
+    // autosave
+    return environment.saveJSON('./save/autosave.json')
+      .then(() => console.log("autosave..."));
   }).catch(function (e){
-    if (e === "Already Exists"){
-      // do nothing
-    } else {
-      console.error("データの取得に失敗しました。")
-      console.error(e.statusCode + e.statusMessage);
-      postDiscord("データを持ってくるのに失敗してるみたい...")
-    }
+    console.error(e);
   });
 }
 
@@ -180,12 +217,14 @@ client.on('message', message => {
     postDiscord("監視開始\n"+today);
     postDiscord("<#"+postToChannel.id+"> に試合結果を投稿します。");
 
-    // 環境の初期化
-    environment = new Env();
     main();
   }else if (botTrigger(message, "end") && isChecking == true) {
     isChecking = false;
     latestGameId = 0;
+    let datestr = dateFormat(new Date(), "YYYYMMDDhhmmss");
+    let fileName = './save/log-'+ datestr +'.json';
+    environment.saveJSON(fileName)
+      .then(() => console.log("データを保存しました。("+fileName+")"));
     postDiscord("終わり〜\nみんなおつかれさま");
   }else if(botTrigger(message, "status")){
     let statMes = isChecking ? "起動中" : "停止中";

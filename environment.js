@@ -1,12 +1,15 @@
 var glicko2 = require('glicko2');
 var Player = require('./player');
+const fs = require('fs');
 
-const settings = require('./config.json').glicko_setting;
+// const settings = require('./config.json').glicko_setting;
 
-var Environment = function() {
+var Environment = function(settings) {
   this.gameCount = 0;
-  this.ranking = new glicko2.Glicko2(settings);
+  this.settings = settings
+  this.ranking = new glicko2.Glicko2(this.settings);
   this.players = {};
+  this.topPlayers = new Set();
 }
 
 Environment.prototype.isEmpty = function() {
@@ -15,7 +18,7 @@ Environment.prototype.isEmpty = function() {
 
 Environment.prototype.reset = function() {
   this.gameCount = 0;
-  this.ranking = new glicko2.Glicko2(settings);
+  this.ranking = new glicko2.Glicko2(this.settings);
   this.players = {};
   this.topPlayers = new Set();
 }
@@ -91,6 +94,55 @@ Environment.prototype.showData = function() {
       console.log(p.getName()+": "+p.getPower());
     }
   }
+}
+
+Environment.prototype.toJSON = function (key) {
+  return {
+    gameCount: this.gameCount,
+    settings: this.settings,
+    players: Object.values(this.players)
+  };
+}
+
+Environment.prototype.saveJSON = function (path) {
+  const data = JSON.stringify(this);
+  return new Promise((resolve, reject) => {
+    fs.writeFile(path, data, 'utf8', (err) => {
+      if (err) {
+        console.error(err);
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    });
+  });
+}
+
+Environment.prototype.loadJSON = function (path) {
+  return new Promise((resolve, reject) => {
+    fs.readFile(path, 'utf8', (err, data) => {
+      if (err) {
+        console.error(err);
+        reject(err);
+      } else {
+        resolve(data);
+      }
+    })
+  }).then(data => {
+    return JSON.parse(data);
+  }).then(data => {
+    this.gameCount = data.gameCount;
+    this.settings = data.settings;
+    this.ranking = new glicko2.Glicko2(data.settings);
+    this.players = {};
+    data.players.map(p => {
+      const rate = [p.rate.rating, p.rate.rd, p.rate.vol];
+      return new Player(p, this.ranking.makePlayer(...rate));
+    }).forEach(p => {
+      this.players[p.pid] = p;
+    });
+    this.topPlayers = this.getTopPlayers();
+  });
 }
 
 module.exports = Environment;

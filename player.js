@@ -1,16 +1,21 @@
 var glicko2 = require('glicko2');
-const config = require('./config.json');
 
 var Player = function(player, glk) {
   this.name = player.nickname;
   this.pid = player.principal_id;
   this.glicko = glk;
-  this.win = 0;
-  this.count = 0;
+  this.win = player.win || 0;
+  this.count = player.count || 0;
 
   this.prevPower = glk.getRating();
   this.prevWon = null;
+}
 
+Player.setConfig = function(config) {
+  this.config = {
+    "calculating_count": config.calculating_count,
+    "calculating_visible": config.calculating_visible
+  };
 }
 
 Player.prototype.getName = function() {
@@ -57,9 +62,9 @@ Player.prototype.str = function() {
     return s;
   };
 
-  if (this.count < config.calculating_count) {
-    var calcstr = "【計測中 " + this.count + "/" + config.calculating_count +"】";
-    if(config.calculating_visible){
+  if (this.count < Player.config.calculating_count) {
+    var calcstr = "【計測中 " + this.count + "/" + Player.config.calculating_count +"】";
+    if(Player.config.calculating_visible){
       s += calcstr + " *" + powerstr() + "*";
     }else{
       s += calcstr;
@@ -69,6 +74,25 @@ Player.prototype.str = function() {
   }
 
   return s;
+}
+
+Player.prototype.toJSON = function(key) {
+  var res = {
+    nickname: this.name,
+    principal_id: this.pid,
+    win: this.win,
+    count: this.count
+  };
+
+  const glk_params = {
+    rating: this.glicko.getRating(),
+    rd: this.glicko.getRd(),
+    vol: this.glicko.getVol()
+  };
+
+  res.rate = glk_params;
+
+  return res;
 }
 
 
