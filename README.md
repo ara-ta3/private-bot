@@ -1,6 +1,6 @@
 # プラベでガチバトルbot
-名前は適当です。  
-プライベートマッチの戦績を元に、ガチマッチやリーグマッチのようにガチパワーを計算して、Discordに投稿するbotです。  
+名前は適当です。
+プライベートマッチの戦績を元に、ガチマッチやリーグマッチのようにガチパワーを計算して、Discordに投稿するbotです。
 (original repository: https://github.com/kinmemodoki/private-bot)
 
 ## 使い方
@@ -10,7 +10,7 @@
 $ npm install
 ```
 ### `config.json`を適切に編集する
-1. https://discordapp.com/developers/applications/ でDiscord上のbotアカウントを作成し、サーバーにbotアカウントを招待する  
+1. https://discordapp.com/developers/applications/ でDiscord上のbotアカウントを作成し、サーバーにbotアカウントを招待する
 このとき、 `CLIENT ID`と`TOKEN`をコピーして， 以下の箇所にペーストしてください
 
 ```
@@ -62,10 +62,25 @@ $ node judge.js
 噂によれば、本家でも使用されているレーティングアルゴリズムらしいので、使用しています。
 
 パラメータとか全然調整していないので、本家とは数値の変動が全然違うかもしれません。（多分ちがう）
+
+### データの保存と復元について
+1バトル集計するごとに，記録している個人のパワーなどを[saveディレクトリ](save/)中に`autosave.json`という名前で保存する。
+また，
+```
+@botアカウントのID end
+```
+で集計を終了したときに，同じく[saveディレクトリ](save/)中に`log-(その時の日時).json`という名前で保存する。
+
+データを復元する際は、
+```bash
+$ node judge.js save/xxx.json
+```
+と引数に復元したいデータのパスを指定すればよい。
+
 ### config
-- `calculating_count` (default: 7)  
+- `calculating_count` (default: 7)
 本家にも存在する【計測中】扱いにする回数。
-- `calculating_visible` (default: false)  
+- `calculating_visible` (default: false)
 計測中の不安定なガチパワーをbotのメッセージに表示するかどうか
 
 ## 不具合的なもの
