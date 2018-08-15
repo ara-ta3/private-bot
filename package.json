@@ -4,7 +4,7 @@
   "description": "",
   "main": "judge.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --require should --reporter list"
   },
   "author": "",
   "license": "ISC",
@@ -13,5 +13,9 @@
     "discord.js": "^11.1.0",
     "glicko2": "^0.8.4",
     "request": "^2.81.0"
+  },
+  "devDependencies": {
+    "mocha": "^5.2.0",
+    "should": "^13.2.3"
   }
 }
