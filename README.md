@@ -82,6 +82,11 @@ $ node judge.js save/xxx.json
 本家にも存在する【計測中】扱いにする回数。
 - `calculating_visible` (default: false)
 計測中の不安定なガチパワーをbotのメッセージに表示するかどうか
+- `glicko_setting`: Glickoレーティングの設定値。各パラメータの詳しくて正しい意味は調べてください。
+    - `tau`: 0.3~1.2の値で良さげなものを選ぶ (default: 0.5)
+    - `rating`: 初期値 (default: 2100)
+    - `rd`: 初期レーティング偏差 (default: 200)
+    - `vol`: 初期レーティング変動率 (default: 0.06)
 
 ## 不具合的なもの
 - `iksm_session`の持ち主が観戦した場合、戦績がそもそも残らないので、その試合のレート算出ができません。
