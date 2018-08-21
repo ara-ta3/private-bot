@@ -238,7 +238,7 @@ client.login(config.discord_token)
 
 
 if(!isDebug){
-  new CronJob('*/30 * * * * *', function() {
+  new CronJob('00 */1 * * * *', function() {
     if(isChecking){
       main();
     }
