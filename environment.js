@@ -9,6 +9,7 @@ var Environment = function(settings) {
   this.settings = settings
   this.ranking = new glicko2.Glicko2(this.settings);
   this.players = {};
+  this.todayPlayerIDs = new Set();
   this.topPlayers = new Set();
 }
 
@@ -20,6 +21,7 @@ Environment.prototype.reset = function() {
   this.gameCount = 0;
   this.ranking = new glicko2.Glicko2(this.settings);
   this.players = {};
+  this.todayPlayerIDs = new Set();
   this.topPlayers = new Set();
 }
 
@@ -27,6 +29,7 @@ Environment.prototype.createPlayer = function(player) {
   var p = new Player(player, this.ranking.makePlayer());
   var pid = player.principal_id;
   this.players[pid] = p;
+  this.todayPlayerIDs.add(pid);
 }
 
 Environment.prototype.updatePower = function(winner, loser) {
@@ -42,6 +45,10 @@ Environment.prototype.updatePower = function(winner, loser) {
   allPlayers
     .filter(p => !this.players.hasOwnProperty(p.principal_id))
     .forEach(p => this.createPlayer(p));
+
+  // 今日参加したプレイヤーを追加する
+  allPlayers
+    .forEach(p => this.todayPlayerIDs.add(p.principal_id));
 
   var glickoMapper = e => this.players[e.principal_id].getGlicko();
   var winner_glk = winner.map(glickoMapper);
@@ -59,18 +66,23 @@ Environment.prototype.updatePower = function(winner, loser) {
   }
 
   // ガチパワーがトップのプレイヤーを探す
-  this.topPlayers = this.getTopPlayers();
+  this.topPlayers = this.getTopPlayersFromIDs(this.todayPlayerIDs);
 }
 
-Environment.prototype.getTopPlayers = function() {
-  let max_power = Math.max(...Object.values(this.players).map(p => p.getPower()));
-  return new Set(Object.values(this.players).filter(p => p.getPower() >= max_power));
+Environment.prototype.getTopPlayersFromIDs = function(playerIDs) {
+  let players = [...playerIDs].map(pid => this.players[pid]);
+  return this.getTopPlayers(players);
+}
+
+Environment.prototype.getTopPlayers = function(players) {
+  let max_power = Math.max(...Object.values(players).map(p => p.getPower()));
+  return new Set(Object.values(players).filter(p => p.getPower() >= max_power));
 }
 
 Environment.prototype.makeTweet = function() {
   var tweet = "";
   var tmpAry = [];
-  for(let k in this.players) {
+  for(let k of this.todayPlayerIDs) {
     if(this.players.hasOwnProperty(k)){
       tmpAry.push(this.players[k]);
     }
@@ -94,6 +106,27 @@ Environment.prototype.showData = function() {
       console.log(p.getName()+": "+p.getPower());
     }
   }
+}
+
+Environment.prototype.makeSummary = function() {
+  var tweet = "";
+  var tmpAry = [];
+  for(let k of this.todayPlayerIDs) {
+    if(this.players.hasOwnProperty(k)){
+      tmpAry.push(this.players[k]);
+    }
+  }
+
+  // パワーが高い順番にソートする
+  var ary = tmpAry.sort((a, b) => b.getPower() - a.getPower());
+
+  return ary.map(e => {
+    var s = e.todaySummary();
+    if(this.topPlayers.has(e)){
+      s += " :first_place: ";
+    }
+    return s;
+  }).join('\n') + '\n';
 }
 
 Environment.prototype.toJSON = function (key) {
@@ -141,7 +174,7 @@ Environment.prototype.loadJSON = function (path) {
     }).forEach(p => {
       this.players[p.pid] = p;
     });
-    this.topPlayers = this.getTopPlayers();
+    // this.topPlayers = this.getTopPlayers();
   });
 }
 

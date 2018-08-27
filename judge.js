@@ -146,6 +146,17 @@ function getPlayersResult(gameId){
   });
 }
 
+function sendSummary() {
+  let pre = "終わり〜 みんなおつかれさま\n\n【今日の対戦結果のまとめ】\n";
+  let body = environment.makeSummary();
+  let tweet = pre + body;
+  return postDiscord(tweet)
+    .catch(e => {
+      console.error("まとめの投稿に失敗しました.");
+      console.error(e);
+    });
+}
+
 function main(){
   if(!iksmSession)
     return 0;
@@ -219,13 +230,14 @@ client.on('message', message => {
 
     main();
   }else if (botTrigger(message, "end") && isChecking == true) {
+    sendSummary();
+
     isChecking = false;
     latestGameId = 0;
     let datestr = dateFormat(new Date(), "YYYYMMDDhhmmss");
     let fileName = './save/log-'+ datestr +'.json';
     environment.saveJSON(fileName)
       .then(() => console.log("データを保存しました。("+fileName+")"));
-    postDiscord("終わり〜\nみんなおつかれさま");
   }else if(botTrigger(message, "status")){
     let statMes = isChecking ? "起動中" : "停止中";
     postDiscord("今は"+statMes+"だよ！");

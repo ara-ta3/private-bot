@@ -9,6 +9,10 @@ var Player = function(player, glk) {
 
   this.prevPower = glk.getRating();
   this.prevWon = null;
+
+  this.todayWin = 0;
+  this.todayCount = 0;
+  this.todayStartPower = glk.getRating();
 }
 
 Player.setConfig = function(config) {
@@ -39,9 +43,18 @@ Player.prototype.preservePower = function() {
 }
 
 Player.prototype.updatePower = function() {
+  let diff = this.getPower() - this.prevPower;
+  if(diff == 0) {
+    this.prevWon = false;
+    return;
+  }
+
   this.count += 1;
-  if(this.getPower() > this.prevPower) {
+  this.todayCount += 1;
+
+  if(diff > 0) {
     this.win += 1;
+    this.todayWin += 1;
     this.prevWon = true;
   } else {
     this.prevWon = false;
@@ -55,7 +68,7 @@ Player.prototype.str = function() {
   var powerstr = () => {
     var s = this.getPower().toFixed(1);
     let i = this.getDiffPower();
-    if(i !== null || i === 0){
+    if(i !== null && i !== 0){
       let diffstr = i > 0 ? "+"+i.toFixed(1)+" :arrow_upper_right: " : i.toFixed(1)+" :arrow_lower_right: ";
       s += " (" + diffstr + ")";
     }
@@ -93,6 +106,19 @@ Player.prototype.toJSON = function(key) {
   res.rate = glk_params;
 
   return res;
+}
+
+Player.prototype.todaySummary = function() {
+  var s = "";
+  s += this.name + ": " + this.getPower().toFixed(1) + "\n    ";
+  s += this.todayWin + "勝" + (this.todayCount - this.todayWin) + "敗";
+
+  let diffPower = this.getPower() - this.todayStartPower;
+  let i = diffPower.toFixed(1);
+  let diffstr = i > 0 ? "+"+i+" :arrow_upper_right: " : i+" :arrow_lower_right: ";
+
+  s += " (" + diffstr + ")";
+  return s;
 }
 
 
