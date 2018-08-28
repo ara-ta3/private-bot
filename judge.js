@@ -241,6 +241,13 @@ client.on('message', message => {
   }else if(botTrigger(message, "status")){
     let statMes = isChecking ? "起動中" : "停止中";
     postDiscord("今は"+statMes+"だよ！");
+  }else if(botTrigger(message, "ranking")){
+    postToChannel = message.channel;
+    postDiscord(environment.makeRanking())
+      .catch(e => {
+        console.error("ランキングの作成に失敗しました.");
+        console.log(e);
+      });
   }
 });
 

@@ -133,6 +133,28 @@ Environment.prototype.makeSummary = function() {
   }).join('\n') + '\n';
 }
 
+Environment.prototype.makeRanking = function() {
+  var tweet = "";
+  var tmpAry = [];
+  for(let k in this.players) {
+    if(this.players.hasOwnProperty(k)){
+      tmpAry.push(this.players[k]);
+    }
+  }
+
+  // パワーが高い順番にソートする
+  var ary = tmpAry.sort((a, b) => b.getPower() - a.getPower());
+  let topPlayers = this.getTopPlayers(this.players);
+
+  return ary.map(e => {
+    var s = e.summary();
+    if(topPlayers.has(e)){
+      s += " :first_place: ";
+    }
+    return s;
+  }).join('\n') + '\n';
+}
+
 Environment.prototype.toJSON = function (key) {
   return {
     gameCount: this.gameCount,

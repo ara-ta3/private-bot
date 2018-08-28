@@ -125,5 +125,14 @@ Player.prototype.todaySummary = function() {
   return s;
 }
 
+Player.prototype.summary = function() {
+  var s = "";
+  s += this.name + ": " + this.getPower().toFixed(1);
+
+  return s;
+}
+
+
+
 
 module.exports = Player;
