@@ -146,13 +146,25 @@ function getPlayersResult(gameId){
   });
 }
 
-function sendSummary() {
+function sendSummary(channel) {
   let pre = "終わり〜 みんなおつかれさま\n\n【今日の対戦結果のまとめ】\n";
   let body = environment.makeSummary();
   let tweet = pre + body;
-  return postDiscord(tweet)
+  return channel.send(tweet)
     .catch(e => {
       console.error("まとめの投稿に失敗しました.");
+      console.error(e);
+    });
+}
+
+function sendUsage(channel) {
+  let mes = "**このbotのコマンド一覧だよ**\n\n"
+            + "`start`: バトルの集計を開始するよ。計測したガチパワーは`start`したチャンネルに投稿するよ。\n\n"
+            + "`end`: バトルの集計を終了するよ。その集計での戦績のまとめも投稿するよ。\n\n"
+            + "`ranking`: botが集計している全プレイヤーで、ガチパワーのランキングを投稿するよ。\n\n"
+  channel.send(mes)
+    .catch(e => {
+      console.error("使い方の投稿に失敗しました。")
       console.error(e);
     });
 }
@@ -242,12 +254,13 @@ client.on('message', message => {
     let statMes = isChecking ? "起動中" : "停止中";
     postDiscord("今は"+statMes+"だよ！");
   }else if(botTrigger(message, "ranking")){
-    postToChannel = message.channel;
-    postDiscord(environment.makeRanking())
+    postDiscord(environment.makeRanking(message.channel))
       .catch(e => {
         console.error("ランキングの作成に失敗しました.");
         console.log(e);
       });
+  } else if (botTrigger(message, "")) {
+    sendUsage(message.channel);
   }
 });
 
