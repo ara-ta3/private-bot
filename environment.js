@@ -50,6 +50,10 @@ Environment.prototype.updatePower = function(winner, loser) {
   allPlayers
     .forEach(p => this.todayPlayerIDs.add(p.principal_id));
 
+  // プレイヤー名を更新する
+  allPlayers
+    .forEach(p => this.players[p.principal_id].updateName(p));
+
   var glickoMapper = e => this.players[e.principal_id].getGlicko();
   var winner_glk = winner.map(glickoMapper);
   var loser_glk = loser.map(glickoMapper);

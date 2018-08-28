@@ -26,6 +26,10 @@ Player.prototype.getName = function() {
   return this.name;
 }
 
+Player.prototype.updateName = function(player) {
+  this.name = player.nickname;
+}
+
 Player.prototype.getGlicko = function() {
   return this.glicko;
 }
