@@ -169,6 +169,14 @@ function sendUsage(channel) {
     });
 }
 
+function sendRanking(channel) {
+  channel.send(environment.makeRanking())
+    .catch(e => {
+      console.error("ランキングの作成に失敗しました.");
+      console.log(e);
+    });
+}
+
 function sendTeamClassfying() {
   return postDiscord(environment.tweetTeamClassifying())
     .catch(e => {
@@ -249,8 +257,8 @@ client.on('message', message => {
     postDiscord("<#"+postToChannel.id+"> に試合結果を投稿します。");
 
     main();
-  }else if (botTrigger(message, "end") && isChecking == true) {
-    sendSummary();
+  } else if (botTrigger(message, "end") && isChecking == true) {
+    sendSummary(postToChannel);
 
     isChecking = false;
     latestGameId = 0;
@@ -258,15 +266,11 @@ client.on('message', message => {
     let fileName = './save/log-'+ datestr +'.json';
     environment.saveJSON(fileName)
       .then(() => console.log("データを保存しました。("+fileName+")"));
-  }else if(botTrigger(message, "status")){
+  } else if(botTrigger(message, "status")){
     let statMes = isChecking ? "起動中" : "停止中";
     postDiscord("今は"+statMes+"だよ！");
-  }else if(botTrigger(message, "ranking")){
-    postDiscord(environment.makeRanking(message.channel))
-      .catch(e => {
-        console.error("ランキングの作成に失敗しました.");
-        console.log(e);
-      });
+  } else if(botTrigger(message, "ranking")){
+    sendRanking(message.channel);
   } else if (botTrigger(message, "team") && isChecking == true) {
     sendTeamClassfying();
   } else if (botTrigger(message, "")) {

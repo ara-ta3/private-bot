@@ -211,8 +211,8 @@ Environment.prototype.buildTeam = function() {
 }
 
 Environment.prototype.tweetTeamClassifying = function() {
-  var [alpha, blabo] = this.buildTeam();
-  var idsToNameStr = ids => {
+  let [alpha, blabo] = this.buildTeam();
+  let idsToNameStr = ids => {
     return Array.from(ids).map(id => this.players[id])
                     .map(p => p.getName())
                     .join('\n    ');
