@@ -1,6 +1,7 @@
 var glicko2 = require('glicko2');
 var Player = require('./player');
 const fs = require('fs');
+const { combination } = require('js-combinatorics');
 
 // const settings = require('./config.json').glicko_setting;
 
@@ -153,6 +154,72 @@ Environment.prototype.makeRanking = function() {
     }
     return s;
   }).join('\n') + '\n';
+}
+
+Environment.prototype.buildTeam = function() {
+  // ガチパワーの合計がほぼ同じになるようにマッチングをする
+
+  // random.choices
+  var choices = (array, num) => {
+    var a = array;
+    var t = {};
+    var r = [];
+    var l = a.length;
+    var n = num < l ? num : l;
+    while (n-- > 0) {
+        var i = Math.random() * l | 0;
+        r[n] = t[i] || a[i];
+        --l;
+        t[i] = t[l] || a[l];
+    }
+    return r;
+  };
+
+  const differenceSets = function(setA, setB) {
+    var difference = new Set(setA);
+    for (var elem of setB) {
+        difference.delete(elem);
+    }
+    return difference;
+  }
+
+  // 8人用意する
+  let targetPlayerIDs = choices(Array.from(this.todayPlayerIDs), 8);
+
+  // 平均値
+  let sumAveragePower = targetPlayerIDs.map(id => this.players[id])
+                      .map(p => p.getPower())
+                      .reduce((acc, cur) => acc + cur) / 2.0;
+
+  var cmb = combination(targetPlayerIDs, 4);
+  // 一番平均値に近いものを採用
+  let bestAveragePlayerIDs = cmb.map(ids => {
+    let sum = ids.map(id => this.players[id])
+                 .map(p => p.getPower())
+                 .reduce((acc, cur) => acc + cur);
+    let distance = Math.abs(sum - sumAveragePower);
+    return [distance, ids];
+  }).reduce((acc, cur) => {
+    return acc[0] < cur[0] ? acc[1] : cur[1];
+  });
+
+  let targetPlayerIDSet = new Set(targetPlayerIDs);
+  bestAveragePlayerIDs = new Set(bestAveragePlayerIDs);
+  let opponentIDs = differenceSets(targetPlayerIDSet, bestAveragePlayerIDs);
+
+  return [bestAveragePlayerIDs, opponentIDs];
+}
+
+Environment.prototype.tweetTeamClassifying = function() {
+  var [alpha, blabo] = this.buildTeam();
+  var idsToNameStr = ids => {
+    return Array.from(ids).map(id => this.players[id])
+                    .map(p => p.getName())
+                    .join('\n    ');
+  };
+  let alpha_text = "**アルファチーム**:\n    " + idsToNameStr(alpha) + "\n";
+  let blabo_text = "**ブラボーチーム**:\n    " + idsToNameStr(blabo) + "\n";
+  return "チーム分けはこちら！\n" + alpha_text + blabo_text;
 }
 
 Environment.prototype.toJSON = function (key) {

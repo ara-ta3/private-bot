@@ -169,6 +169,14 @@ function sendUsage(channel) {
     });
 }
 
+function sendTeamClassfying() {
+  return postDiscord(environment.tweetTeamClassifying())
+    .catch(e => {
+      console.error("チーム分けの投稿に失敗しました。");
+      console.error(e);
+    });
+}
+
 function main(){
   if(!iksmSession)
     return 0;
@@ -259,6 +267,8 @@ client.on('message', message => {
         console.error("ランキングの作成に失敗しました.");
         console.log(e);
       });
+  } else if (botTrigger(message, "team") && isChecking == true) {
+    sendTeamClassfying();
   } else if (botTrigger(message, "")) {
     sendUsage(message.channel);
   }

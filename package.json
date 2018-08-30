@@ -12,6 +12,7 @@
     "cron": "^1.2.1",
     "discord.js": "^11.1.0",
     "glicko2": "^0.8.4",
+    "js-combinatorics": "^0.5.3",
     "request": "^2.81.0"
   },
   "devDependencies": {
