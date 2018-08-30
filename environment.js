@@ -34,6 +34,7 @@ Environment.prototype.createPlayer = function(player) {
 }
 
 Environment.prototype.updatePower = function(winner, loser) {
+  console.log(winner);
   this.gameCount += 1;
   for(let k in this.players) {
     if(this.players.hasOwnProperty(k)){
@@ -55,18 +56,25 @@ Environment.prototype.updatePower = function(winner, loser) {
   allPlayers
     .forEach(p => this.players[p.principal_id].updateName(p));
 
-  var glickoMapper = e => this.players[e.principal_id].getGlicko();
-  var winner_glk = winner.map(glickoMapper);
-  var loser_glk = loser.map(glickoMapper);
-  var race = this.ranking.makeRace([
-    winner_glk,
-    loser_glk,
-  ]);
-  this.ranking.updateRatings(race);
+  let glickoMapper = e => this.players[e.principal_id].getGlicko();
 
-  for(let k in this.players) {
-    if(this.players.hasOwnProperty(k)){
-      this.players[k].updatePower();
+  if(loser.some(e => e.game_paint_point === 0)){
+    // no contest
+  } else {
+    // 勝ち側の回線落ちしていない人は勝利扱い
+    var winner_glk = winner.filter(e => e.game_paint_point > 0)
+                           .map(glickoMapper);
+    var loser_glk = loser.map(glickoMapper);
+    var race = this.ranking.makeRace([
+      winner_glk,
+      loser_glk,
+    ]);
+    this.ranking.updateRatings(race);
+
+    for(let k in this.players) {
+      if(this.players.hasOwnProperty(k)){
+        this.players[k].updatePower();
+      }
     }
   }
 

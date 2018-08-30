@@ -135,8 +135,13 @@ function getPlayersResult(gameId){
         loser.push(resData.player_result);
     }
     //console.log(winner);
-    var winPlayer = winner.map(x => x.player);
-    var losePlayer = loser.map(x => x.player);
+    const playerDataMapper = x => {
+      let p = x.player;
+      p.game_paint_point = x.game_paint_point;
+      return p;
+    };
+    var winPlayer = winner.map(playerDataMapper);
+    var losePlayer = loser.map(playerDataMapper);
     return {
       rule: rule,
       stage: stage,
@@ -162,6 +167,7 @@ function sendUsage(channel) {
             + "`start`: バトルの集計を開始するよ。計測したガチパワーは`start`したチャンネルに投稿するよ。\n\n"
             + "`end`: バトルの集計を終了するよ。その集計での戦績のまとめも投稿するよ。\n\n"
             + "`ranking`: botが集計している全プレイヤーで、ガチパワーのランキングを投稿するよ。\n\n"
+            + "`team`: チームのガチパワーができるだけ均等になるようにチーム分けするよ。\n\n"
   channel.send(mes)
     .catch(e => {
       console.error("使い方の投稿に失敗しました。")
