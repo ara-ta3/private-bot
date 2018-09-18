@@ -34,13 +34,12 @@ var environment = function initEnvironment(reset){
 function httpRequest(options) {
   return new Promise(function (resolve, reject) {
     request(options, function (error, res, body) {
-      if (!error && (res.statusCode == 200)) {
+      if (!error && (res.statusCode === 200)) {
         body['res'] = res;
         resolve(res);
       } else if(res.statusCode == 204){
         resolve();
       } else {
-        console.error('not 200 code : ',res.statusCode);
         reject(error);
       }
     });
@@ -50,10 +49,9 @@ function httpRequest(options) {
 function jsonRequest(options) {
   return new Promise(function (resolve, reject) {
     request(options, function (error, res, body) {
-      if (!error && (res.statusCode == 200)) {
+      if (!error && (res.statusCode === 200)) {
         resolve(body);
       } else {
-        console.log('not 200 code : ',res.statusCode);
         reject(res);
       }
     });
@@ -118,11 +116,9 @@ function getPlayersResult(gameId){
       'Cookie': 'iksm_session='+iksmSession,
     },
   }).then(function(resData){
-    // ルールとステージを取り出す
-    let rule = resData.rule.name;
-    let stage = resData.stage.name;
+    const rule = resData.rule.name;
+    const stage = resData.stage.name;
 
-    //console.log(resData);
     if(resData.my_team_result.name == 'WIN!'){
       var winner = resData.my_team_members;
       if(resData.player_result)
@@ -134,7 +130,6 @@ function getPlayersResult(gameId){
       if(resData.player_result)
         loser.push(resData.player_result);
     }
-    //console.log(winner);
     const playerDataMapper = x => {
       let p = x.player;
       p.game_paint_point = x.game_paint_point;
@@ -232,14 +227,12 @@ function main(){
     //ウデマエアルゴリズム
     environment.updatePower(battleResult.winPlayer, battleResult.losePlayer);
 
-    let tweet_body = environment.makeTweet();
-    let tweet_pre = ruler() + "\n\n"
+    const tweet_body = environment.makeTweet();
+    const tweet_pre = ruler() + "\n\n"
                     + "**【"+environment.gameCount+"試合目】**\n"
                     + battleResult.rule + " " + battleResult.stage
                     + "\n\n";
-    let tweet = tweet_pre + tweet_body;
-
-    return postDiscord(tweet);
+    return postDiscord(tweet_pre + tweet_body);
   }).then(function() {
     // autosave
     return environment.saveJSON('./save/autosave.json')
@@ -257,23 +250,23 @@ client.on('message', message => {
 
   if (botTrigger(message, "start") && isChecking == false) {
     isChecking = true;
-    var today = new Date();
+    const today = new Date();
     postToChannel = message.channel;
     postDiscord("監視開始\n"+today);
     postDiscord("<#"+postToChannel.id+"> に試合結果を投稿します。");
 
     main();
-  } else if (botTrigger(message, "end") && isChecking == true) {
+  } else if (botTrigger(message, "end") && isChecking === true) {
     sendSummary(postToChannel);
 
     isChecking = false;
     latestGameId = 0;
-    let datestr = dateFormat(new Date(), "YYYYMMDDhhmmss");
-    let fileName = './save/log-'+ datestr +'.json';
+    const datestr = dateFormat(new Date(), "YYYYMMDDhhmmss");
+    const fileName = './save/log-'+ datestr +'.json';
     environment.saveJSON(fileName)
       .then(() => console.log("データを保存しました。("+fileName+")"));
   } else if(botTrigger(message, "status")){
-    let statMes = isChecking ? "起動中" : "停止中";
+    const statMes = isChecking ? "起動中" : "停止中";
     postDiscord("今は"+statMes+"だよ！");
   } else if(botTrigger(message, "ranking")){
     sendRanking(message.channel);
